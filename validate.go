@@ -14,12 +14,14 @@ func handlerValidateChirp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	decoder := json.NewDecoder(r.Body)
+	defer r.Body.Close()
 	reqB := reqBody{}
 	// After decode if it returns an error, server responds with a internal error status code and a json error is written
 	if err := decoder.Decode(&reqB); err != nil {
 		respondWithError(w, http.StatusInternalServerError, "couldn't decode decoder", err)
 		return
 	}
+	
 
 	// If the request body is over 140 characters, then sends a bad request status and a json error is written
 	if len(reqB.Body) > 140 {
