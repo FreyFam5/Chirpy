@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"sync/atomic"
@@ -19,9 +18,10 @@ func main() {
 	handler := http.StripPrefix("/app", http.FileServer(http.Dir(".")))
 	mux.Handle("/app/", apicfg.middlewareMetricsInc(handler))
 
-	mux.HandleFunc("GET /healthz", handlerReadiness)
-	mux.HandleFunc("GET /metrics", apicfg.handlerMetrics)
-	mux.HandleFunc("POST /reset", apicfg.handlerReset)
+	mux.HandleFunc("GET /api/healthz", handlerReadiness)
+	mux.HandleFunc("POST /api/validate_chirp", handlerValidateChirp)
+	mux.HandleFunc("GET /admin/metrics", apicfg.handlerMetrics)
+	mux.HandleFunc("POST /admin/reset", apicfg.handlerReset)
 
 	port := "8080"
 
@@ -32,20 +32,4 @@ func main() {
 
 	log.Printf("starting server for port: %s", port)
 	log.Fatal(server.ListenAndServe())
-}
-
-
-// Adds a hit every time the page is visited
-func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		cfg.fileserverHits.Add(1)
-		next.ServeHTTP(w, r)
-	})
-}
-
-// Makes a page that shows the amount fo hits visually
-func (cfg * apiConfig) handlerMetrics(w http.ResponseWriter, r *http.Request) {
-	w.Header().Add("Content-Type", "text/plain; charset=utf-8")
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(fmt.Sprintf("Hits: %d", cfg.fileserverHits.Load())))
 }
