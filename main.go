@@ -30,7 +30,7 @@ func main() {
 	if dbURL == "" {
 		log.Fatal("DB_URL must be set")
 	}
-
+	// Opens database
 	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
 		log.Fatalf("couldn't open %s: %s", dbURL, err)
@@ -43,19 +43,24 @@ func main() {
 		fileserverHits: atomic.Int32{},
 	}
 
-	mux := http.ServeMux{}
+	mux := http.NewServeMux()
 	handler := http.StripPrefix("/app", http.FileServer(http.Dir(filepathRoot)))
 	mux.Handle("/app/", apicfg.middlewareMetricsInc(handler))
 
 	mux.HandleFunc("GET /api/healthz", handlerReadiness)
+
 	mux.HandleFunc("POST /api/chirps", apicfg.handlerCreateChirp)
+	mux.HandleFunc("GET /api/chirps", apicfg.handlerGetChirps)
+	mux.HandleFunc("GET /api/chirps/{chirpID}", apicfg.handlerGetChirpByID)
+
 	mux.HandleFunc("POST /api/users", apicfg.handlerUsersCreate)
+	mux.HandleFunc("POST /api/login", apicfg.handlerUsersLogin)
 
 	mux.HandleFunc("GET /admin/metrics", apicfg.handlerMetrics)
 	mux.HandleFunc("POST /admin/reset", apicfg.handlerReset)
 
 	server := &http.Server{
-		Handler: &mux,
+		Handler: mux,
 		Addr: ":" + port,
 	}
 
