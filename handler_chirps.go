@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/FreyFam5/go/chirpy/internal/auth"
 	"github.com/FreyFam5/go/chirpy/internal/database"
 	"github.com/google/uuid"
 )
@@ -21,7 +22,7 @@ type chirp struct {
 	}
 
 func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request) {
-	c, ok := validateChirp(w, r)
+	c, ok := validateChirp(w, r, cfg)
 	if !ok {
 		return
 	}
@@ -45,8 +46,8 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 	respondWithJSON(w, http.StatusCreated, c)
 }
 
-// Cleans the chirp given and return it if it was valid
-func validateChirp(w http.ResponseWriter, r *http.Request) (chirp, bool){
+// Cleans the chirp given and returns it if it was valid
+func validateChirp(w http.ResponseWriter, r *http.Request, cfg *apiConfig) (chirp, bool){
 	decoder := json.NewDecoder(r.Body)
 	defer r.Body.Close()
 	c := chirp{}
@@ -55,7 +56,6 @@ func validateChirp(w http.ResponseWriter, r *http.Request) (chirp, bool){
 		respondWithError(w, http.StatusInternalServerError, "Couldn't decode decoder", err)
 		return chirp{}, false
 	}
-	
 
 	// If the request body is over 140 characters, then sends a bad request status and a json error is written
 	if len(c.Body) > 140 {
@@ -63,10 +63,24 @@ func validateChirp(w http.ResponseWriter, r *http.Request) (chirp, bool){
 		return chirp{}, false
 	}
 
+	// Gets the the token from the requests header
+	token, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Couldn't get token", err)
+		return chirp{}, false
+	}
+
+	// Gets the user id of the associated token
+	c.UserId, err = auth.ValidateJWT(token, cfg.secret)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Not authorized to view this chirp", err)
+		return chirp{}, false
+	}
+
 	profaneWords := []string{"kerfuffle", "sharbert", "fornax"}
 
 	c.Body = getCleanedBody(c.Body, profaneWords)
-
+	
 	return c, true
 }
 

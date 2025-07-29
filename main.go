@@ -15,6 +15,7 @@ import (
 type apiConfig struct {
 	db *database.Queries
 	platform string
+	secret string
 	fileserverHits atomic.Int32
 }
 
@@ -25,11 +26,14 @@ func main() {
 	godotenv.Load()
 	// Dev grab
 	platform := os.Getenv("PLATFORM")
+	// Secret JWT grab
+	secret := os.Getenv("SECRET")
 	// Url grab and check
 	dbURL := os.Getenv("DB_URL")
 	if dbURL == "" {
 		log.Fatal("DB_URL must be set")
 	}
+
 	// Opens database
 	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
@@ -40,6 +44,7 @@ func main() {
 	apicfg := apiConfig{
 		db: dbQueries,
 		platform: platform,
+		secret: secret,
 		fileserverHits: atomic.Int32{},
 	}
 
@@ -55,6 +60,8 @@ func main() {
 
 	mux.HandleFunc("POST /api/users", apicfg.handlerUsersCreate)
 	mux.HandleFunc("POST /api/login", apicfg.handlerUsersLogin)
+	mux.HandleFunc("POST /api/refresh", apicfg.handlerRefresh)
+	mux.HandleFunc("POST /api/revoke", apicfg.handlerRevoke)
 
 	mux.HandleFunc("GET /admin/metrics", apicfg.handlerMetrics)
 	mux.HandleFunc("POST /admin/reset", apicfg.handlerReset)
