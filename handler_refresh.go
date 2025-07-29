@@ -12,10 +12,10 @@ func (cfg *apiConfig) handlerRefresh(w http.ResponseWriter, r *http.Request) {
 		Token string `json:"token"`
 	}
 
-	// Gets the refresh token from the header
+	// Gets the refresh token's string from the header
 	rToken, err := auth.GetBearerToken(r.Header)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Couldn't get bearer token in header", err)
+		respondWithError(w, http.StatusInternalServerError, "Couldn't get token in header", err)
 		return
 	}
 
@@ -54,6 +54,7 @@ func (cfg *apiConfig) handlerRefresh(w http.ResponseWriter, r *http.Request) {
 
 	respondWithJSON(w, http.StatusOK, Token{Token: token})
 }
+
 
 func (cfg *apiConfig) handlerRevoke(w http.ResponseWriter, r *http.Request) {
 	rToken, err := auth.GetBearerToken(r.Header)

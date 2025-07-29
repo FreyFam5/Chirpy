@@ -9,16 +9,18 @@ import (
 // Writes the given error to the server
 func respondWithError(w http.ResponseWriter, statusCode int, msg string, err error) {
 	if err != nil {
-		log.Printf("error: %s", err)
+		log.Printf("error: %s\n", err)
+	}
+
+	if statusCode > 499 {
+		log.Printf("Responding with 5XX error: %s", msg)
 	}
 
 	type errorBody struct {
 		Error string `json:"error"`
 	}
-	errBody := errorBody{
-		Error: msg,
-	}
-	respondWithJSON(w, statusCode, errBody)
+	
+	respondWithJSON(w, statusCode, errorBody{Error: msg})
 }
 
 // Writes the given parameters json to the server
