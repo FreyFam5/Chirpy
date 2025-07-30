@@ -16,6 +16,7 @@ type apiConfig struct {
 	db *database.Queries
 	platform string
 	secret string
+	apiKey string
 	fileserverHits atomic.Int32
 }
 
@@ -26,8 +27,19 @@ func main() {
 	godotenv.Load()
 	// Dev grab
 	platform := os.Getenv("PLATFORM")
+	if platform == "" {
+		log.Fatal("PLATFORM must be set")
+	}
 	// Secret JWT grab
 	secret := os.Getenv("SECRET")
+	if secret == "" {
+		log.Fatal("SECRET must be set")
+	}
+	// Polka key grab
+	apiKey := os.Getenv("POLKA_KEY")
+	if apiKey == "" {
+		log.Fatal("POLKA_KEY must be set")
+	}
 	// Url grab and check
 	dbURL := os.Getenv("DB_URL")
 	if dbURL == "" {
@@ -45,6 +57,7 @@ func main() {
 		db: dbQueries,
 		platform: platform,
 		secret: secret,
+		apiKey: apiKey,
 		fileserverHits: atomic.Int32{},
 	}
 
@@ -62,6 +75,8 @@ func main() {
 	mux.HandleFunc("POST /api/users", apicfg.handlerUsersCreate)
 	mux.HandleFunc("PUT /api/users", apicfg.handlerUsersUpdateLogin)
 	mux.HandleFunc("POST /api/login", apicfg.handlerUsersLogin)
+
+	mux.HandleFunc("POST /api/polka/webhooks", apicfg.handlerUpgradeUserToRed)
 
 	mux.HandleFunc("POST /api/refresh", apicfg.handlerRefresh)
 	mux.HandleFunc("POST /api/revoke", apicfg.handlerRevoke)
